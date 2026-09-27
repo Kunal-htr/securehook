@@ -1,11 +1,14 @@
 package com.securehook.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.securehook.model.DeliveryAttempt;
 import com.securehook.model.Subscription;
 import com.securehook.repository.DeliveryAttemptRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.TaskScheduler;
@@ -29,13 +32,19 @@ public class WebhookDeliveryService {
     private final DeliveryAttemptRepository deliveryAttemptRepository;
     private final TaskScheduler taskScheduler;
     private final Executor deliveryExecutor;
+    private final SignatureService signatureService;
+    private final ObjectMapper objectMapper;
 
     public WebhookDeliveryService(DeliveryAttemptRepository deliveryAttemptRepository,
                                   TaskScheduler taskScheduler,
-                                  @Qualifier("deliveryExecutor") Executor deliveryExecutor) {
+                                  @Qualifier("deliveryExecutor") Executor deliveryExecutor,
+                                  SignatureService signatureService,
+                                  ObjectMapper objectMapper) {
         this.deliveryAttemptRepository = deliveryAttemptRepository;
         this.taskScheduler = taskScheduler;
         this.deliveryExecutor = deliveryExecutor;
+        this.signatureService = signatureService;
+        this.objectMapper = objectMapper;
         
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(3000); // 3 seconds
@@ -52,10 +61,17 @@ public class WebhookDeliveryService {
     }
 
     private void executeAttempt(Subscription subscription, UUID eventId, String eventType, Map<String, Object> payload, int attemptNumber) {
-        // NOTE: HMAC-SHA256 signature generation is intentionally omitted here 
-        // as per the requirement constraints (scoping for Module 3.2).
-        
         logger.info("Attempt {} to deliver event {} ({}) to {}", attemptNumber, eventId, eventType, subscription.getTargetUrl());
+
+        String jsonPayload;
+        try {
+            jsonPayload = objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize payload for event {}", eventId, e);
+            return;
+        }
+
+        String signatureHeader = signatureService.generateSignature(jsonPayload, subscription.getSecretKey());
 
         DeliveryAttempt attempt = new DeliveryAttempt();
         attempt.setEventId(eventId);
@@ -67,8 +83,9 @@ public class WebhookDeliveryService {
         try {
             ResponseEntity<String> response = restClient.post()
                     .uri(subscription.getTargetUrl())
-                    // No X-Signature header here yet
-                    .body(payload)
+                    .header("X-Signature", signatureHeader)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(jsonPayload)
                     .retrieve()
                     .toEntity(String.class);
 
@@ -81,7 +98,6 @@ public class WebhookDeliveryService {
                     eventId, subscription.getTargetUrl(), attemptNumber, response.getStatusCode().value());
 
         } catch (RestClientResponseException e) {
-            // Handles 4xx and 5xx HTTP responses
             attempt.setHttpStatus(e.getStatusCode().value());
             attempt.setSuccess(false);
             attempt.setResponseBody(truncate(e.getResponseBodyAsString(), 2000));
@@ -90,7 +106,6 @@ public class WebhookDeliveryService {
                     eventId, subscription.getTargetUrl(), attemptNumber, e.getStatusCode().value());
 
         } catch (RestClientException e) {
-            // Handles connection timeouts, DNS errors, etc. (No HTTP response)
             attempt.setHttpStatus(null);
             attempt.setSuccess(false);
             attempt.setResponseBody(truncate(e.getClass().getSimpleName() + ": " + e.getMessage(), 2000));
@@ -108,7 +123,6 @@ public class WebhookDeliveryService {
             logger.info("Scheduling attempt {} for event {} in {} seconds", attemptNumber + 1, eventId, delaySeconds);
             
             taskScheduler.schedule(() -> {
-                // Offload back to the thread pool so the TaskScheduler thread isn't blocked by HTTP calls
                 deliveryExecutor.execute(() -> {
                     executeAttempt(subscription, eventId, eventType, payload, attemptNumber + 1);
                 });
