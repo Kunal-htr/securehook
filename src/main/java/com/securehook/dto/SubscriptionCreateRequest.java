@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import org.hibernate.validator.constraints.URL;
 
 import java.util.Set;
+import com.securehook.validation.ValidEventType;
 
 public class SubscriptionCreateRequest {
 
@@ -13,6 +14,7 @@ public class SubscriptionCreateRequest {
     private String targetUrl;
 
     @NotEmpty
+    @ValidEventType
     private Set<String> eventTypes;
 
     public String getTargetUrl() {
