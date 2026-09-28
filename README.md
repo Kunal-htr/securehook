@@ -43,6 +43,8 @@ You need to set the following exact environment variables before running the app
 *   `DB_USER`
 *   `DB_PASSWORD`
 *   `API_KEY` (The shared operator key to authenticate API requests)
+*   `KEEPALIVE_URL` (Optional, set only in deployment to ping the health endpoint)
+*   `KEEPALIVE_INTERVAL_MS` (Optional, defaults to 840000)
 
 *Note on IPv4-only networks: When using Supabase from an IPv4 network, you must use the Supabase Session pooler (port 5432). The Transaction pooler (port 6543) is not suitable for JPA/Hibernate prepared statements.*
 
@@ -93,7 +95,7 @@ mvnw.cmd clean spring-boot:run
 
 ## API Reference
 
-All endpoints are protected and require the `X-API-Key` header.
+All endpoints except `/health` are protected and require the `X-API-Key` header.
 
 | Method   | Path                       | Purpose                                      | Auth Required |
 | -------- | -------------------------- | -------------------------------------------- | ------------- |
@@ -102,6 +104,7 @@ All endpoints are protected and require the `X-API-Key` header.
 | `DELETE` | `/subscriptions/{id}`      | Delete a subscription by its UUID            | Yes           |
 | `POST`   | `/events`                  | Publish an event to be delivered             | Yes           |
 | `GET`    | `/deliveries/{eventId}`    | Get the delivery attempt logs for an event   | Yes           |
+| `GET`    | `/health`                  | Public health check endpoint                 | No            |
 
 ## Example Commands
 
@@ -206,7 +209,7 @@ Integration tests (`SecureHookApplicationTests.contextLoads()`) run directly aga
 
 ## Known Limitations
 
-*   **Azure App Service F1 Cold Starts:** The free F1 tier does not support "Always On." The application will idle out after about 20 minutes of inactivity, and the first request after idling can take 30-60+ seconds to process.
+*   **Azure App Service F1 Cold Starts:** The free F1 tier does not support "Always On." The application will idle out after about 20 minutes of inactivity. While the keep-alive scheduler reduces the frequency of cold starts, it does not completely eliminate them (e.g., a platform restart will still cause one). The first request after idling can take 30-60+ seconds to process.
 *   **No SSRF Protection on `targetUrl`:** An authenticated caller can create a subscription targeting internal IP addresses or private network services.
 *   **Thread Pool Saturation:** When the async delivery thread pool is fully saturated, it uses the `CallerRunsPolicy`. This causes the `/events` endpoint to block the caller instead of returning immediately.
 *   **Static `secretKey`:** A subscription's `secretKey` is shown only once at creation and cannot be rotated.

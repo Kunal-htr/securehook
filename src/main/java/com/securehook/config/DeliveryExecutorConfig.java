@@ -10,8 +10,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @Configuration
 @EnableAsync
+@EnableScheduling
 public class DeliveryExecutorConfig {
 
     @Bean(name = "deliveryExecutor")
