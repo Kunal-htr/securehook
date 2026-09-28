@@ -1,0 +1,6 @@
+{
+  "targetUrl": "not-a-valid-url",
+  "eventTypes": [
+    "order.created"
+  ]
+}

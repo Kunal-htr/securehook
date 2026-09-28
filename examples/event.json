@@ -1,0 +1,7 @@
+{
+  "eventType": "order.created",
+  "payload": {
+    "orderId": "12345",
+    "amount": 99.99
+  }
+}

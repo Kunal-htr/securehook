@@ -1,0 +1,6 @@
+{
+  "targetUrl": "https://webhook.site/placeholder-uuid",
+  "eventTypes": [
+    "order.created"
+  ]
+}

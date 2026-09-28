@@ -1,0 +1,6 @@
+{
+  "eventType": "invalid.event.type",
+  "payload": {
+    "orderId": "12345"
+  }
+}
