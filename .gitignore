@@ -39,5 +39,4 @@ build/
 .vscode/
 
 .env
-verify_auth.ps1
-verify_readme.ps1
+verify_*.ps1
