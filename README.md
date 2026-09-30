@@ -220,4 +220,6 @@ Integration tests (`SecureHookApplicationTests.contextLoads()`) run directly aga
 
 ## Live Demo
 
-[Placeholder: Live Demo URL will be added here after deployment]
+https://securehook-backend-excde9gdewh9gec8.centralindia-01.azurewebsites.net
+
+The `/health` endpoint is the quickest way to confirm the app is live. All other endpoints require the `X-API-Key` header per the API Reference table above.
