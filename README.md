@@ -231,7 +231,7 @@ When code is pushed to `main` (or run manually via `workflow_dispatch`), the `bu
 ### Continuous Deployment (CD)
 After CI passes, the `deploy-to-azure` job is triggered:
 1. It downloads the compiled JAR artifact from the CI stage.
-2. It securely deploys the JAR directly to the existing Azure App Service (`securehook-backend-excde9gdewh9gec8`) using the `azure/webapps-deploy@v3` action.
+2. It securely deploys the JAR directly to the existing Azure App Service (`securehook-backend`) using the `azure/webapps-deploy@v3` action.
 
 The production Azure App Service is a **Linux Java SE 17** environment, not a Docker container.
 
