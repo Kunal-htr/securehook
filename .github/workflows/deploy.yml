@@ -53,6 +53,6 @@ jobs:
       - name: Deploy JAR to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'securehook-backend-excde9gdewh9gec8'
+          app-name: 'securehook-backend'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: 'target/securehook-0.0.1-SNAPSHOT.jar'
