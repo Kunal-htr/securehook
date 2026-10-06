@@ -218,6 +218,31 @@ Integration tests (`SecureHookApplicationTests.contextLoads()`) run directly aga
 *   **No Rate Limiting:** The `/events` endpoint currently has no rate limiting implemented.
 *   **Single Shared API Key:** The system relies on one global API key for management access rather than per-client tokens.
 
+## CI/CD Pipeline
+
+SecureHook uses GitHub Actions for continuous integration and continuous deployment.
+
+### Continuous Integration (CI)
+When code is pushed to `main` (or run manually via `workflow_dispatch`), the `build-and-validate` job is triggered:
+1. It checks out the code and sets up Java 17.
+2. It runs `mvnw clean package -DskipTests` to compile the application into a Spring Boot JAR.
+3. It builds a Docker image locally as a validation step to ensure Docker compatibility is maintained. *(The Docker image is not pushed or deployed to Azure).*
+
+### Continuous Deployment (CD)
+After CI passes, the `deploy-to-azure` job is triggered:
+1. It downloads the compiled JAR artifact from the CI stage.
+2. It securely deploys the JAR directly to the existing Azure App Service (`securehook-backend-excde9gdewh9gec8`) using the `azure/webapps-deploy@v3` action.
+
+The production Azure App Service is a **Linux Java SE 17** environment, not a Docker container.
+
+### Azure App Settings
+The deployment workflow does not touch the existing Azure configuration. Your runtime secrets and environment variables must remain configured securely in the Azure Portal App Settings:
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `API_KEY`
+
+### Required GitHub Secrets
+To allow GitHub Actions to securely deploy to Azure, you must add the following Repository Secret in GitHub:
+- `AZURE_WEBAPP_PUBLISH_PROFILE`: The raw XML publish profile downloaded from the Azure App Service.
+
 ## Live Demo
 
 https://securehook-backend-excde9gdewh9gec8.centralindia-01.azurewebsites.net
